@@ -1,0 +1,16 @@
+# Terraform working files and state (state can contain secrets)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Variable files often hold secrets or personal values
+*.tfvars
+*.tfvars.json
+
+# Keys, credentials, environment files
+*.pem
+*.key
+.env
+.aws/
