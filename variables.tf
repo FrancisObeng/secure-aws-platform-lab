@@ -15,3 +15,7 @@ variable "availability_zone" {
   type        = string
   default     = "us-east-2a"
 }
+variable "alert_email" {
+  description = "Email address that receives CloudWatch alarm notifications"
+  type        = string
+}
