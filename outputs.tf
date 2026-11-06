@@ -6,3 +6,7 @@ output "instance_id" {
 output "vpc_id" {
   value = aws_vpc.main.id
 }
+output "web_url" {
+  description = "Open this in your browser to see the app"
+  value       = "http://${aws_instance.web.public_ip}"
+}

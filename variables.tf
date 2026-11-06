@@ -19,3 +19,7 @@ variable "alert_email" {
   description = "Email address that receives CloudWatch alarm notifications"
   type        = string
 }
+variable "my_ip_cidr" {
+  description = "Your public IP in CIDR form; the only address allowed to view the web page"
+  type        = string
+}

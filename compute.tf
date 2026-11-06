@@ -7,7 +7,6 @@ data "aws_ssm_parameter" "al2023" {
 resource "aws_iam_role" "ec2_ssm" {
   name = "${var.project_name}-ec2-ssm-role"
 
-  # Only the EC2 service may wear this badge
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -18,13 +17,11 @@ resource "aws_iam_role" "ec2_ssm" {
   })
 }
 
-# Give the badge ONLY the permissions SSM Session Manager needs
 resource "aws_iam_role_policy_attachment" "ssm_core" {
   role       = aws_iam_role.ec2_ssm.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# Instance profile: the "badge holder" that attaches the role to EC2
 resource "aws_iam_instance_profile" "ec2_ssm" {
   name = "${var.project_name}-ec2-ssm-profile"
   role = aws_iam_role.ec2_ssm.name
@@ -33,13 +30,20 @@ resource "aws_iam_instance_profile" "ec2_ssm" {
 # --- Security group: the door policy ---
 resource "aws_security_group" "web" {
   name        = "${var.project_name}-web-sg"
-  description = "Web server SG - no SSH; outbound HTTPS only"
+  description = "Web server SG - no SSH; HTTP from my IP only; outbound HTTPS only"
   vpc_id      = aws_vpc.main.id
 
-  # No ingress rules at all: nothing can connect IN (no SSH, port 22 closed)
+  # Still no SSH. The only way in is HTTP, and only from my IP.
+  ingress {
+    description = "HTTP from my IP only"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip_cidr]
+  }
 
   egress {
-    description = "HTTPS out for SSM and package updates"
+    description = "HTTPS out for SSM, package updates, GitHub, and Docker Hub"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -58,18 +62,29 @@ resource "aws_instance" "web" {
   iam_instance_profile        = aws_iam_instance_profile.ec2_ssm.name
   associate_public_ip_address = true
 
-  # IMDSv2 required: blocks a common credential-theft trick
   metadata_options {
     http_endpoint = "enabled"
     http_tokens   = "required"
   }
 
-  # Encrypted disk
   root_block_device {
     encrypted   = true
     volume_size = 8
     volume_type = "gp3"
   }
+
+  # Runs once at first boot: install Docker, pull the app from GitHub, build it, run it
+  user_data_replace_on_change = true
+  user_data                   = <<-EOF
+    #!/bin/bash
+    set -euxo pipefail
+    dnf -y update
+    dnf -y install docker git
+    systemctl enable --now docker
+    git clone https://github.com/FrancisObeng/secure-aws-platform-lab.git /opt/lab
+    docker build -t platform-lab /opt/lab/app
+    docker run -d --name web --restart unless-stopped -p 80:8080 platform-lab
+  EOF
 
   tags = { Name = "${var.project_name}-web" }
 }
