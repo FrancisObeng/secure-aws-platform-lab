@@ -14,7 +14,7 @@ jobs:
     name: Terraform fmt + validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -33,7 +33,7 @@ jobs:
     name: Checkov IaC security scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@v12
@@ -45,13 +45,14 @@ jobs:
     name: Docker build + Trivy scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Build image
         run: docker build -t platform-lab:ci ./app
 
+      # Pinned to a commit SHA, not a tag: tags can be moved by an attacker, SHAs cannot
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: platform-lab:ci
           severity: CRITICAL,HIGH

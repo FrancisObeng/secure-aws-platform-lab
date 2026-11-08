@@ -55,18 +55,23 @@ resource "aws_security_group" "web" {
 
 # --- The server ---
 resource "aws_instance" "web" {
+  #checkov:skip=CKV_AWS_88:Public IP needed for SSM/web without NAT or VPC endpoints ($30+/mo); no SSH, HTTP allowed from one IP only
   ami                         = data.aws_ssm_parameter.al2023.value
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.web.id]
   iam_instance_profile        = aws_iam_instance_profile.ec2_ssm.name
   associate_public_ip_address = true
+  monitoring                  = true
+  ebs_optimized               = true
 
+  # IMDSv2 required: blocks a common credential-theft trick
   metadata_options {
     http_endpoint = "enabled"
     http_tokens   = "required"
   }
 
+  # Encrypted disk
   root_block_device {
     encrypted   = true
     volume_size = 8
