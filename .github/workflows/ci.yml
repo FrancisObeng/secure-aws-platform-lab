@@ -58,3 +58,12 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
+
+  shellcheck:
+    name: ShellCheck Bash scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Lint scripts
+        run: shellcheck scripts/*.sh
